@@ -41,7 +41,8 @@ public class Attraction : IAttraction, ISeed<Attraction>
         AttractionId = Guid.NewGuid();
 
         Category = sgen.FromEnum<AttractionCategory>();
-        Title = $"{sgen.LastName}s {Category}";
+        var name = sgen.LastName;
+        Title = name.EndsWith("s") ? $"{name} {Category}" : $"{name}s {Category}";
         Description = sgen.LatinSentence;
 
         // The street address is set again when the Attraction is placed in a City,
