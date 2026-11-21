@@ -92,8 +92,6 @@ namespace AppWebApi.Controllers
         }
 
         //GET: api/admin/removeseed
-        [Authorize(AuthenticationSchemes = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme,
-          Policy = null, Roles = "dbo")]
         [HttpGet()]
         [ActionName("RemoveSeed")]
         [ProducesResponseType(200, Type = typeof(GstUsrInfoAllDto))]
