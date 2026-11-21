@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Inlämning (innehåller secrets, ska inte till GitHub)
+Inlamning/
