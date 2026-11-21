@@ -1,0 +1,39 @@
+erDiagram
+    CITY ||--o{ ATTRACTION : "har"
+    ATTRACTION ||--o{ COMMENT : "har"
+    TRAVELER ||--o{ COMMENT : "skriver"
+
+    CITY {
+        Guid CityId PK
+        string Name "Required"
+        string Country "Required"
+        bool Seeded
+    }
+
+    ATTRACTION {
+        Guid AttractionId PK
+        string Title "Required"
+        string Description
+        AttractionCategory Category "enum"
+        string strCategory "enum som text"
+        string StreetAddress "Required"
+        Guid CityId FK "Required"
+        bool Seeded
+    }
+
+    COMMENT {
+        Guid CommentId PK
+        string Text "Required"
+        DateTime Created
+        Guid AttractionId FK "Required"
+        Guid TravelerId FK "Required"
+        bool Seeded
+    }
+
+    TRAVELER {
+        Guid TravelerId PK
+        string FirstName "Required"
+        string LastName "Required"
+        string Email
+        bool Seeded
+    }
