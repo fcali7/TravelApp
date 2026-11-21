@@ -5,9 +5,9 @@ orter, sevärdheter, kommentarer och användare. Alla tjänster kan testas via S
 
 ## Kom igång
 
-1. **Starta databasen (SQL Server i Docker)**
+1. **Starta databasen (PostgreSQL i Docker)**
    ```powershell
-   docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=<lösenord>" -p 14333:1433 --name sql2022container --hostname sql2022 -d mcr.microsoft.com/mssql/server:2022-latest
+   docker run --name postgrescontainer -e POSTGRES_PASSWORD=<lösenord från secrets.json> -d -p 5432:5432 postgres
    ```
    (se även `_scripts/docker/install_sql_docker.ps1`)
 
@@ -16,9 +16,9 @@ orter, sevärdheter, kommentarer och användare. Alla tjänster kan testas via S
 
 3. **Skapa databasen** – i en terminal i mappen `_scripts`:
    ```powershell
-   .\database-rebuild-all.ps1 sql-travel sqlserver docker root ..\AppWebApi
+   .\database-rebuild-all.ps1 sql-travel postgresql docker root ..\AppWebApi
    ```
-   Kör därefter `DbContext/SqlScripts/sqlserver/initDatabase.sql` mot databasen.
+   Kör därefter `DbContext/SqlScripts/postgres/initDatabase.sql` mot databasen.
 
 4. **Starta WebApi** – i mappen `AppWebApi`:
    ```powershell
