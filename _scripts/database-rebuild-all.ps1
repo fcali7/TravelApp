@@ -41,6 +41,9 @@ switch ($DatabaseType) {
 }
 
 $AppSettingsFolder = Resolve-Path $AppSettingsFolder
+
+#restore packages and build, needed the first time after a git clone
+dotnet build ../DbContext
 $AppSettingsPath = Join-Path $AppSettingsFolder "appsettings.json"
 
 #set UseDataSetWithTag to "<db_name>.<db_type>.<env>" in appsettings.json

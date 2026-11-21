@@ -54,6 +54,9 @@ fi
 # folder that contains appsettings.json
 AppSettingsFolder=$(realpath "$5")
 
+#restore packages and build, needed the first time after a git clone
+dotnet build ../DbContext
+
 #set UseDataSetWithTag to "<db_name>.<db_type>.<env>" in appsettings.json
 sed -i '' 's/"UseDataSetWithTag":[[:space:]]*"[^"]*"/"UseDataSetWithTag": "'$1'.'$2'.'$3'"/g' $AppSettingsFolder/appsettings.json
 
