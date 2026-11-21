@@ -6,56 +6,58 @@ CREATE SCHEMA IF NOT EXISTS gstusr;
 CREATE SCHEMA IF NOT EXISTS usr;
 CREATE SCHEMA IF NOT EXISTS supusr;
 
-SELECT COUNT(*) FROM supusr."Friends";
+-- Drop old versions first, as PostgreSQL cannot change the columns of a view
+-- or the OUT parameters of a function with CREATE OR REPLACE
+DROP VIEW IF EXISTS gstusr."vwInfoDb";
+DROP VIEW IF EXISTS gstusr."vwInfoCountries";
+DROP FUNCTION IF EXISTS supusr."spDeleteAll"(BOOLEAN);
 
 -- Create views
+-- Overview of the database content: number of travelers, cities, attractions and comments
 CREATE OR REPLACE VIEW gstusr."vwInfoDb" AS
-    SELECT (SELECT COUNT(*) FROM supusr."Friends" WHERE "Seeded" = true) as "NrSeededFriends", 
-        (SELECT COUNT(*) FROM supusr."Friends" WHERE "Seeded" = false) as "NrUnseededFriends",
-        (SELECT COUNT(*) FROM supusr."Friends" WHERE "AddressId" IS NOT NULL) as "NrFriendsWithAddress",
-        (SELECT COUNT(*) FROM supusr."Addresses" WHERE "Seeded" = true) as "NrSeededAddresses", 
-        (SELECT COUNT(*) FROM supusr."Addresses" WHERE "Seeded" = false) as "NrUnseededAddresses",
-        (SELECT COUNT(*) FROM supusr."Pets" WHERE "Seeded" = true) as "NrSeededPets", 
-        (SELECT COUNT(*) FROM supusr."Pets" WHERE "Seeded" = false) as "NrUnseededPets",
-        (SELECT COUNT(*) FROM supusr."Quotes" WHERE "Seeded" = true) as "NrSeededQuotes", 
-        (SELECT COUNT(*) FROM supusr."Quotes" WHERE "Seeded" = false) as "NrUnseededQuotes";
+    SELECT (SELECT COUNT(*) FROM supusr."Travelers" WHERE "Seeded" = true) as "NrSeededTravelers",
+        (SELECT COUNT(*) FROM supusr."Travelers" WHERE "Seeded" = false) as "NrUnseededTravelers",
+        (SELECT COUNT(*) FROM supusr."Cities" WHERE "Seeded" = true) as "NrSeededCities",
+        (SELECT COUNT(*) FROM supusr."Cities" WHERE "Seeded" = false) as "NrUnseededCities",
+        (SELECT COUNT(*) FROM supusr."Attractions" WHERE "Seeded" = true) as "NrSeededAttractions",
+        (SELECT COUNT(*) FROM supusr."Attractions" WHERE "Seeded" = false) as "NrUnseededAttractions",
+        (SELECT COUNT(*) FROM supusr."Attractions" a
+            WHERE NOT EXISTS (SELECT 1 FROM supusr."Comments" c WHERE c."AttractionId" = a."AttractionId")) as "NrAttractionsWithoutComments",
+        (SELECT COUNT(*) FROM supusr."Comments" WHERE "Seeded" = true) as "NrSeededComments",
+        (SELECT COUNT(*) FROM supusr."Comments" WHERE "Seeded" = false) as "NrUnseededComments";
 
-CREATE OR REPLACE VIEW gstusr."vwInfoFriends" AS
-    SELECT a."Country" as "Country", a."City" as "City", COUNT(*) as "NrFriends" FROM supusr."Friends" f
-    INNER JOIN supusr."Addresses" a ON f."AddressId" = a."AddressId"
-    GROUP BY ROLLUP(a."Country", a."City");
-
-CREATE OR REPLACE VIEW gstusr."vwInfoPets" AS
-    SELECT a."Country" as "Country", a."City" as "City", COUNT(p."PetId") as "NrPets" FROM supusr."Friends" f
-    INNER JOIN supusr."Addresses" a ON f."AddressId" = a."AddressId"
-    INNER JOIN supusr."Pets" p ON p."FriendId" = f."FriendId"
-    GROUP BY ROLLUP(a."Country", a."City");
-
-CREATE OR REPLACE VIEW gstusr."vwInfoQuotes" AS
-    SELECT "Author" as "Author", COUNT("QuoteText") as "NrQuotes" FROM supusr."Quotes" 
-    GROUP BY "Author";
+-- Number of cities and attractions per country
+CREATE OR REPLACE VIEW gstusr."vwInfoCountries" AS
+    SELECT c."Country" as "Country",
+        COUNT(DISTINCT c."CityId") as "NrCities",
+        COUNT(a."AttractionId") as "NrAttractions"
+    FROM supusr."Cities" c
+    LEFT JOIN supusr."Attractions" a ON a."CityId" = c."CityId"
+    GROUP BY c."Country";
 
 -- Create the DeleteAll function (PostgreSQL uses functions instead of procedures for this pattern)
 CREATE OR REPLACE FUNCTION supusr."spDeleteAll"(
     seededParam BOOLEAN DEFAULT true,
-    OUT nrFriendsAffected INTEGER,
-    OUT nrAddressesAffected INTEGER,
-    OUT nrPetsAffected INTEGER,
-    OUT nrQuotesAffected INTEGER
+    OUT nrTravelersAffected INTEGER,
+    OUT nrCitiesAffected INTEGER,
+    OUT nrAttractionsAffected INTEGER,
+    OUT nrCommentsAffected INTEGER
 )
 RETURNS RECORD
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    SELECT COUNT(*) INTO nrFriendsAffected FROM supusr."Friends" WHERE "Seeded" = seededParam;
-    SELECT COUNT(*) INTO nrAddressesAffected FROM supusr."Addresses" WHERE "Seeded" = seededParam;
-    SELECT COUNT(*) INTO nrPetsAffected FROM supusr."Pets" WHERE "Seeded" = seededParam;
-    SELECT COUNT(*) INTO nrQuotesAffected FROM supusr."Quotes" WHERE "Seeded" = seededParam;
+    SELECT COUNT(*) INTO nrTravelersAffected FROM supusr."Travelers" WHERE "Seeded" = seededParam;
+    SELECT COUNT(*) INTO nrCitiesAffected FROM supusr."Cities" WHERE "Seeded" = seededParam;
+    SELECT COUNT(*) INTO nrAttractionsAffected FROM supusr."Attractions" WHERE "Seeded" = seededParam;
+    SELECT COUNT(*) INTO nrCommentsAffected FROM supusr."Comments" WHERE "Seeded" = seededParam;
 
-    DELETE FROM supusr."Friends" WHERE "Seeded" = seededParam;
-    DELETE FROM supusr."Addresses" WHERE "Seeded" = seededParam;
-    DELETE FROM supusr."Pets" WHERE "Seeded" = seededParam;
-    DELETE FROM supusr."Quotes" WHERE "Seeded" = seededParam;
+    -- Delete in an order that respects the foreign keys:
+    -- Comments -> Attractions -> Cities (Restrict), and Travelers
+    DELETE FROM supusr."Comments" WHERE "Seeded" = seededParam;
+    DELETE FROM supusr."Attractions" WHERE "Seeded" = seededParam;
+    DELETE FROM supusr."Cities" WHERE "Seeded" = seededParam;
+    DELETE FROM supusr."Travelers" WHERE "Seeded" = seededParam;
 
     -- Test to throw an error (uncomment if needed)
     -- RAISE EXCEPTION 'Error occurred in supusr.spDeleteAll';
@@ -146,9 +148,7 @@ GRANT USAGE ON SCHEMA public TO gstusrrole;
 
 -- Grant role privileges for gstusrrole
 GRANT SELECT ON gstusr."vwInfoDb" TO gstusrrole;
-GRANT SELECT ON gstusr."vwInfoFriends" TO gstusrrole;
-GRANT SELECT ON gstusr."vwInfoPets" TO gstusrrole;
-GRANT SELECT ON gstusr."vwInfoQuotes" TO gstusrrole;
+GRANT SELECT ON gstusr."vwInfoCountries" TO gstusrrole;
 GRANT EXECUTE ON FUNCTION gstusr."spLogin"(VARCHAR, VARCHAR) TO gstusrrole;
 
 -- Grant role privileges for usrrole

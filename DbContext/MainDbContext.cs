@@ -23,12 +23,6 @@ public class MainDbContext : Microsoft.EntityFrameworkCore.DbContext
 #endif
 
     #region C# model of database tables
-    public DbSet<FriendDbM> Friends { get; set; }
-    public DbSet<AddressDbM> Addresses { get; set; }
-    public DbSet<PetDbM> Pets { get; set; }
-    public DbSet<QuoteDbM> Quotes { get; set; }
-
-    //TravelApp tables
     public DbSet<CityDbM> Cities { get; set; }
     public DbSet<AttractionDbM> Attractions { get; set; }
     public DbSet<CommentDbM> Comments { get; set; }
@@ -46,9 +40,7 @@ public class MainDbContext : Microsoft.EntityFrameworkCore.DbContext
 
     #region model the Views
     public DbSet<GstUsrInfoDbDto> InfoDbView { get; set; }
-    public DbSet<GstUsrInfoFriendsDto> InfoFriendsView { get; set; }
-    public DbSet<GstUsrInfoPetsDto> InfoPetsView { get; set; }
-    public DbSet<GstUsrInfoQuotesDto> InfoQuotesView { get; set; }
+    public DbSet<GstUsrInfoCountriesDto> InfoCountriesView { get; set; }
     #endregion
 
     //Here we can modify the migration building
@@ -57,22 +49,10 @@ public class MainDbContext : Microsoft.EntityFrameworkCore.DbContext
 
         #region model the Views
         modelBuilder.Entity<GstUsrInfoDbDto>().ToView("vwInfoDb", "gstusr").HasNoKey();
-        modelBuilder.Entity<GstUsrInfoFriendsDto>().ToView("vwInfoFriends", "gstusr").HasNoKey();
-        modelBuilder.Entity<GstUsrInfoPetsDto>().ToView("vwInfoPets", "gstusr").HasNoKey();
-        modelBuilder.Entity<GstUsrInfoQuotesDto>().ToView("vwInfoQuotes", "gstusr").HasNoKey();        
+        modelBuilder.Entity<GstUsrInfoCountriesDto>().ToView("vwInfoCountries", "gstusr").HasNoKey();
         #endregion
 
         #region override modelbuilder
-        modelBuilder.Entity("DbModels.FriendDbM", b =>
-        {
-            b.HasOne("DbModels.AddressDbM", "AddressDbM")
-                .WithMany("FriendsDbM")
-                .HasForeignKey("AddressId")
-                .OnDelete(DeleteBehavior.SetNull);
-
-            b.Navigation("AddressDbM");
-        });
-
         //TravelApp relationships, modelled with Fluent API
         modelBuilder.Entity<AttractionDbM>(b =>
         {

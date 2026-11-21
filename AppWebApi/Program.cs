@@ -40,7 +40,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new()
     {
-        Title = "Seido Friends API",
+        Title = "TravelApp API",
 #if DEBUG
         Version = "v2.0 DEBUG",
 #else
@@ -72,16 +72,7 @@ builder.Services.AddSwaggerGen(c =>
 
 //Inject DbRepos and Services
 builder.Services.AddScoped<AdminDbRepos>();
-builder.Services.AddScoped<FriendsDbRepos>();
-builder.Services.AddScoped<AddressesDbRepos>();
-builder.Services.AddScoped<PetsDbRepos>();
-builder.Services.AddScoped<QuotesDbRepos>();
-
 builder.Services.AddScoped<IAdminService, AdminServiceDb>();
-builder.Services.AddScoped<IFriendsService, FriendsServiceDb>();
-builder.Services.AddScoped<IAddressesService, AddressesServiceDb>();
-builder.Services.AddScoped<IPetsService, PetsServiceDb>();
-builder.Services.AddScoped<IQuotesService, QuotesServiceDb>();
 
 builder.Services.AddScoped<LoginDbRepos>();
 builder.Services.AddScoped<ILoginService, LoginService>();
@@ -95,7 +86,7 @@ var app = builder.Build();
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Seido Friends API v2.0");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "TravelApp API v2.0");
     });
 }
 

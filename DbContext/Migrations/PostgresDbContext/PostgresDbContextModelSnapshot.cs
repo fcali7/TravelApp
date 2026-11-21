@@ -22,38 +22,6 @@ namespace DbContext.Migrations.PostgresDbContext
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("DbModels.AddressDbM", b =>
-                {
-                    b.Property<Guid>("AddressId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<bool>("Seeded")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("StreetAddress")
-                        .IsRequired()
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<int>("ZipCode")
-                        .HasColumnType("integer");
-
-                    b.HasKey("AddressId");
-
-                    b.HasIndex("StreetAddress", "ZipCode", "City", "Country")
-                        .IsUnique();
-
-                    b.ToTable("Addresses", "supusr");
-                });
-
             modelBuilder.Entity("DbModels.AttractionDbM", b =>
                 {
                     b.Property<Guid>("AttractionId")
@@ -152,97 +120,6 @@ namespace DbContext.Migrations.PostgresDbContext
                     b.ToTable("Comments", "supusr");
                 });
 
-            modelBuilder.Entity("DbModels.FriendDbM", b =>
-                {
-                    b.Property<Guid>("FriendId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("AddressId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("Birthday")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("LastName")
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<bool>("Seeded")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("FriendId");
-
-                    b.HasIndex("AddressId");
-
-                    b.HasIndex("FirstName", "LastName");
-
-                    b.HasIndex("LastName", "FirstName");
-
-                    b.ToTable("Friends", "supusr");
-                });
-
-            modelBuilder.Entity("DbModels.PetDbM", b =>
-                {
-                    b.Property<Guid>("PetId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("FriendId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Kind")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Mood")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<bool>("Seeded")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("strKind")
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("strMood")
-                        .HasColumnType("varchar(200)");
-
-                    b.HasKey("PetId");
-
-                    b.HasIndex("FriendId");
-
-                    b.ToTable("Pets", "supusr");
-                });
-
-            modelBuilder.Entity("DbModels.QuoteDbM", b =>
-                {
-                    b.Property<Guid>("QuoteId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Author")
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("QuoteText")
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<bool>("Seeded")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("QuoteId");
-
-                    b.ToTable("Quotes", "supusr");
-                });
-
             modelBuilder.Entity("DbModels.TravelerDbM", b =>
                 {
                     b.Property<Guid>("TravelerId")
@@ -296,98 +173,54 @@ namespace DbContext.Migrations.PostgresDbContext
                     b.ToTable("Users", "dbo");
                 });
 
-            modelBuilder.Entity("FriendDbMQuoteDbM", b =>
+            modelBuilder.Entity("Models.DTO.GstUsrInfoCountriesDto", b =>
                 {
-                    b.Property<Guid>("FriendsDbMFriendId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Country")
+                        .HasColumnType("varchar(200)");
 
-                    b.Property<Guid>("QuotesDbMQuoteId")
-                        .HasColumnType("uuid");
+                    b.Property<int>("NrAttractions")
+                        .HasColumnType("integer");
 
-                    b.HasKey("FriendsDbMFriendId", "QuotesDbMQuoteId");
+                    b.Property<int>("NrCities")
+                        .HasColumnType("integer");
 
-                    b.HasIndex("QuotesDbMQuoteId");
+                    b.ToTable((string)null);
 
-                    b.ToTable("FriendDbMQuoteDbM", "supusr");
+                    b.ToView("vwInfoCountries", "gstusr");
                 });
 
             modelBuilder.Entity("Models.DTO.GstUsrInfoDbDto", b =>
                 {
-                    b.Property<int>("NrFriendsWithAddress")
+                    b.Property<int>("NrAttractionsWithoutComments")
                         .HasColumnType("integer");
 
-                    b.Property<int>("NrSeededAddresses")
+                    b.Property<int>("NrSeededAttractions")
                         .HasColumnType("integer");
 
-                    b.Property<int>("NrSeededFriends")
+                    b.Property<int>("NrSeededCities")
                         .HasColumnType("integer");
 
-                    b.Property<int>("NrSeededPets")
+                    b.Property<int>("NrSeededComments")
                         .HasColumnType("integer");
 
-                    b.Property<int>("NrSeededQuotes")
+                    b.Property<int>("NrSeededTravelers")
                         .HasColumnType("integer");
 
-                    b.Property<int>("NrUnseededAddresses")
+                    b.Property<int>("NrUnseededAttractions")
                         .HasColumnType("integer");
 
-                    b.Property<int>("NrUnseededFriends")
+                    b.Property<int>("NrUnseededCities")
                         .HasColumnType("integer");
 
-                    b.Property<int>("NrUnseededPets")
+                    b.Property<int>("NrUnseededComments")
                         .HasColumnType("integer");
 
-                    b.Property<int>("NrUnseededQuotes")
+                    b.Property<int>("NrUnseededTravelers")
                         .HasColumnType("integer");
 
                     b.ToTable((string)null);
 
                     b.ToView("vwInfoDb", "gstusr");
-                });
-
-            modelBuilder.Entity("Models.DTO.GstUsrInfoFriendsDto", b =>
-                {
-                    b.Property<string>("City")
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("Country")
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<int>("NrFriends")
-                        .HasColumnType("integer");
-
-                    b.ToTable((string)null);
-
-                    b.ToView("vwInfoFriends", "gstusr");
-                });
-
-            modelBuilder.Entity("Models.DTO.GstUsrInfoPetsDto", b =>
-                {
-                    b.Property<string>("City")
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("Country")
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<int>("NrPets")
-                        .HasColumnType("integer");
-
-                    b.ToTable((string)null);
-
-                    b.ToView("vwInfoPets", "gstusr");
-                });
-
-            modelBuilder.Entity("Models.DTO.GstUsrInfoQuotesDto", b =>
-                {
-                    b.Property<string>("Author")
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<int>("NrQuotes")
-                        .HasColumnType("integer");
-
-                    b.ToTable((string)null);
-
-                    b.ToView("vwInfoQuotes", "gstusr");
                 });
 
             modelBuilder.Entity("DbModels.AttractionDbM", b =>
@@ -420,47 +253,6 @@ namespace DbContext.Migrations.PostgresDbContext
                     b.Navigation("TravelerDbM");
                 });
 
-            modelBuilder.Entity("DbModels.FriendDbM", b =>
-                {
-                    b.HasOne("DbModels.AddressDbM", "AddressDbM")
-                        .WithMany("FriendsDbM")
-                        .HasForeignKey("AddressId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("AddressDbM");
-                });
-
-            modelBuilder.Entity("DbModels.PetDbM", b =>
-                {
-                    b.HasOne("DbModels.FriendDbM", "FriendDbM")
-                        .WithMany("PetsDbM")
-                        .HasForeignKey("FriendId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FriendDbM");
-                });
-
-            modelBuilder.Entity("FriendDbMQuoteDbM", b =>
-                {
-                    b.HasOne("DbModels.FriendDbM", null)
-                        .WithMany()
-                        .HasForeignKey("FriendsDbMFriendId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DbModels.QuoteDbM", null)
-                        .WithMany()
-                        .HasForeignKey("QuotesDbMQuoteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("DbModels.AddressDbM", b =>
-                {
-                    b.Navigation("FriendsDbM");
-                });
-
             modelBuilder.Entity("DbModels.AttractionDbM", b =>
                 {
                     b.Navigation("CommentsDbM");
@@ -469,11 +261,6 @@ namespace DbContext.Migrations.PostgresDbContext
             modelBuilder.Entity("DbModels.CityDbM", b =>
                 {
                     b.Navigation("AttractionsDbM");
-                });
-
-            modelBuilder.Entity("DbModels.FriendDbM", b =>
-                {
-                    b.Navigation("PetsDbM");
                 });
 
             modelBuilder.Entity("DbModels.TravelerDbM", b =>

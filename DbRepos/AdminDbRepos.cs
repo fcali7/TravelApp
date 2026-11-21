@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Data.Common;
@@ -17,6 +17,12 @@ namespace DbRepos;
 public class AdminDbRepos
 {
     private const string _seedSource = "./app-seeds.json";
+
+    //Minimum amount of seeded data according to the project requirements
+    private const int _nrOfTravelers = 50;
+    private const int _nrOfCities = 100;
+    private const int _maxNrOfCommentsPerAttraction = 20;
+
     private readonly ILogger<AdminDbRepos> _logger;
     private Encryptions _encryptions;
     private readonly MainDbContext _dbContext;
@@ -35,9 +41,7 @@ public class AdminDbRepos
     {
         var info = new GstUsrInfoAllDto();
         info.Db = await _dbContext.InfoDbView.FirstAsync();
-        info.Friends = await _dbContext.InfoFriendsView.ToListAsync();
-        info.Pets = await _dbContext.InfoPetsView.ToListAsync();
-        info.Quotes = await _dbContext.InfoQuotesView.ToListAsync();
+        info.Countries = await _dbContext.InfoCountriesView.ToListAsync();
 
         return new ResponseItemDto<GstUsrInfoAllDto>
         {
@@ -49,34 +53,49 @@ public class AdminDbRepos
         };
     }
 
-    public async Task<ResponseItemDto<GstUsrInfoAllDto>> SeedAsync(int nrOfItems)
+    public async Task<ResponseItemDto<GstUsrInfoAllDto>> SeedAsync(int nrOfAttractions)
     {
-        //First of all make sure the database is cleared from all seeded data
+        //Robust seeding: first of all make sure the database is cleared from all seeded data,
+        //so the seed can be run any number of times without creating duplicates
         await RemoveSeedAsync(true);
 
         //Create a seeder
         var fn = Path.GetFullPath(_seedSource);
         var seeder = new SeedGenerator(fn);
 
-        //Seeding the  quotes table
-        var quotes = seeder.AllQuotes.Select(q => new QuoteDbM(q)).ToList();
+        //Travelers (the users writing comments)
+        var travelers = seeder.ItemsToList<TravelerDbM>(_nrOfTravelers);
 
-        #region Full seeding
-        //Generate friends and addresses
-        var friends = seeder.ItemsToList<FriendDbM>(nrOfItems);
-        var addresses = seeder.UniqueItemsToList<AddressDbM>(nrOfItems);
-
-        //Assign Address, Pets and Quotes to all the friends
-        foreach (var friend in friends)
+        //Cities, randomly distributed over the countries in the seed file.
+        //Unique on (Name, Country) to match the unique index in the database
+        var cities = new List<CityDbM>();
+        for (int tries = 0; cities.Count < _nrOfCities && tries < 10_000; tries++)
         {
-            friend.AddressDbM = (seeder.Bool) ? seeder.FromList(addresses) : null;
-            friend.PetsDbM = seeder.ItemsToList<PetDbM>(seeder.Next(0, 4));
-            friend.QuotesDbM = seeder.UniqueItemsPickedFromList(seeder.Next(0, 6), quotes);
+            var city = new CityDbM().Seed(seeder);
+            if (!cities.Any(c => c.Name == city.Name && c.Country == city.Country))
+                cities.Add(city);
         }
 
-        //Note that all other tables are automatically set through FriendDbM Navigation properties
-        _dbContext.Friends.AddRange(friends);
-        #endregion
+        //Attractions, randomly placed on addresses in the cities
+        var attractions = seeder.ItemsToList<AttractionDbM>(nrOfAttractions);
+        foreach (var attraction in attractions)
+        {
+            attraction.CityDbM = seeder.FromList(cities);
+            attraction.StreetAddress = seeder.StreetAddress(attraction.CityDbM.Country);
+
+            //Each attraction gets 0 - 20 comments, written by random travelers
+            attraction.CommentsDbM = seeder.ItemsToList<CommentDbM>(seeder.Next(0, _maxNrOfCommentsPerAttraction + 1));
+            foreach (var comment in attraction.CommentsDbM)
+            {
+                comment.TravelerDbM = seeder.FromList(travelers);
+            }
+        }
+
+        //Note that Cities, Comments and Travelers are added through the Attraction navigation properties.
+        //Travelers and Cities are also added explicitly, so those without attractions/comments are saved too
+        _dbContext.Travelers.AddRange(travelers);
+        _dbContext.Cities.AddRange(cities);
+        _dbContext.Attractions.AddRange(attractions);
 
         await _dbContext.SaveChangesAsync();
         return await DbInfo();
@@ -96,24 +115,24 @@ public class AdminDbRepos
             parameters = new List<DbParameter>
             {
                 new MySqlParameter("seededParam", seeded),
-                new MySqlParameter("nrFriendsAffected", MySqlDbType.Int32) { Direction = ParameterDirection.Output },
-                new MySqlParameter("nrAddressesAffected", MySqlDbType.Int32) { Direction = ParameterDirection.Output },
-                new MySqlParameter("nrPetsAffected", MySqlDbType.Int32) { Direction = ParameterDirection.Output },
-                new MySqlParameter("nrQuotesAffected", MySqlDbType.Int32) { Direction = ParameterDirection.Output }
+                new MySqlParameter("nrTravelersAffected", MySqlDbType.Int32) { Direction = ParameterDirection.Output },
+                new MySqlParameter("nrCitiesAffected", MySqlDbType.Int32) { Direction = ParameterDirection.Output },
+                new MySqlParameter("nrAttractionsAffected", MySqlDbType.Int32) { Direction = ParameterDirection.Output },
+                new MySqlParameter("nrCommentsAffected", MySqlDbType.Int32) { Direction = ParameterDirection.Output }
             };
         }
         else if (connection is NpgsqlConnection)
         {
             // PostgreSQL parameters - call as function returning table
-            command.CommandText = "SELECT nrFriendsAffected, nrAddressesAffected, nrPetsAffected, nrQuotesAffected FROM supusr.\"spDeleteAll\"(@seededParam)";
+            command.CommandText = "SELECT nrTravelersAffected, nrCitiesAffected, nrAttractionsAffected, nrCommentsAffected FROM supusr.\"spDeleteAll\"(@seededParam)";
             command.CommandType = CommandType.Text;
             parameters =
             [
                 new NpgsqlParameter("seededParam", seeded),
-                new NpgsqlParameter("nrFriendsAffected", NpgsqlTypes.NpgsqlDbType.Integer) { Direction = ParameterDirection.Output },
-                new NpgsqlParameter("nrAddressesAffected", NpgsqlTypes.NpgsqlDbType.Integer) { Direction = ParameterDirection.Output },
-                new NpgsqlParameter("nrPetsAffected", NpgsqlTypes.NpgsqlDbType.Integer) { Direction = ParameterDirection.Output },
-                new NpgsqlParameter("nrQuotesAffected", NpgsqlTypes.NpgsqlDbType.Integer) { Direction = ParameterDirection.Output }
+                new NpgsqlParameter("nrTravelersAffected", NpgsqlTypes.NpgsqlDbType.Integer) { Direction = ParameterDirection.Output },
+                new NpgsqlParameter("nrCitiesAffected", NpgsqlTypes.NpgsqlDbType.Integer) { Direction = ParameterDirection.Output },
+                new NpgsqlParameter("nrAttractionsAffected", NpgsqlTypes.NpgsqlDbType.Integer) { Direction = ParameterDirection.Output },
+                new NpgsqlParameter("nrCommentsAffected", NpgsqlTypes.NpgsqlDbType.Integer) { Direction = ParameterDirection.Output }
             ];
         }
         else
@@ -123,10 +142,10 @@ public class AdminDbRepos
             parameters = new List<DbParameter>
             {
                 new SqlParameter("seededParam", seeded),
-                new SqlParameter("nrFriendsAffected", SqlDbType.Int) { Direction = ParameterDirection.Output },
-                new SqlParameter("nrAddressesAffected", SqlDbType.Int) { Direction = ParameterDirection.Output },
-                new SqlParameter("nrPetsAffected", SqlDbType.Int) { Direction = ParameterDirection.Output },
-                new SqlParameter("nrQuotesAffected", SqlDbType.Int) { Direction = ParameterDirection.Output }
+                new SqlParameter("nrTravelersAffected", SqlDbType.Int) { Direction = ParameterDirection.Output },
+                new SqlParameter("nrCitiesAffected", SqlDbType.Int) { Direction = ParameterDirection.Output },
+                new SqlParameter("nrAttractionsAffected", SqlDbType.Int) { Direction = ParameterDirection.Output },
+                new SqlParameter("nrCommentsAffected", SqlDbType.Int) { Direction = ParameterDirection.Output }
             };
         }
 
@@ -143,41 +162,12 @@ public class AdminDbRepos
         }
         else
         {
-            // Execute the stored procedure and get the result set
+            // Execute the stored procedure, the result set is not used in this example
             using var reader = await command.ExecuteReaderAsync();
-
-            // map reader result into GstUsrInfoDbDto result_set
-            GstUsrInfoDbDto result_set = null;
-            if (reader.HasRows)
-            {
-                // Read the first result set which should be InfoDbView
-                await reader.ReadAsync();
-
-                result_set = new GstUsrInfoDbDto
-                {
-                    // Populate properties from the reader
-                    NrSeededFriends = Convert.ToInt32(reader["NrSeededFriends"]),
-                    NrUnseededFriends = Convert.ToInt32(reader["NrUnseededFriends"]),
-                    NrFriendsWithAddress = Convert.ToInt32(reader["NrFriendsWithAddress"]),
-                    NrSeededAddresses = Convert.ToInt32(reader["NrSeededAddresses"]),
-                    NrUnseededAddresses = Convert.ToInt32(reader["NrUnseededAddresses"]),
-                    NrSeededPets = Convert.ToInt32(reader["NrSeededPets"]),
-                    NrUnseededPets = Convert.ToInt32(reader["NrUnseededPets"]),
-                    NrSeededQuotes = Convert.ToInt32(reader["NrSeededQuotes"]),
-                    NrUnseededQuotes = Convert.ToInt32(reader["NrUnseededQuotes"])
-                };
-            }
             await reader.CloseAsync();
-            // result_set can now be accessed - not used in this example
         }
 
-
-        // Output parameters can now be accessed - not used in this example
-        int nrFriends = (int)parameters.First(p => p.ParameterName == "nrFriendsAffected").Value;
-        int nrAddresses = (int)parameters.First(p => p.ParameterName == "nrAddressesAffected").Value;
-        int nrPets = (int)parameters.First(p => p.ParameterName == "nrPetsAffected").Value;
-        int nrQuotes = (int)parameters.First(p => p.ParameterName == "nrQuotesAffected").Value;
-
+        _logger.LogInformation($"{nameof(RemoveSeedAsync)}: stored procedure spDeleteAll executed");
         return await DbInfo();
     }
 

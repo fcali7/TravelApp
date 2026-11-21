@@ -74,7 +74,7 @@ namespace AppWebApi.Controllers
         [ActionName("Seed")]
         [ProducesResponseType(200, Type = typeof(GstUsrInfoAllDto))]
         [ProducesResponseType(400, Type = typeof(string))]
-        public async Task<IActionResult> Seed(string count = "100")
+        public async Task<IActionResult> Seed(string count = "1000")
         {
             try
             {
