@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DbContext.Migrations.PostgresDbContext
 {
     [DbContext(typeof(MainDbContext.PostgresDbContext))]
-    [Migration("20261121174443_miInitial")]
+    [Migration("20261121180042_miInitial")]
     partial class miInitial
     {
         /// <inheritdoc />
@@ -55,6 +55,104 @@ namespace DbContext.Migrations.PostgresDbContext
                         .IsUnique();
 
                     b.ToTable("Addresses", "supusr");
+                });
+
+            modelBuilder.Entity("DbModels.AttractionDbM", b =>
+                {
+                    b.Property<Guid>("AttractionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<bool>("Seeded")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("StreetAddress")
+                        .IsRequired()
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("strCategory")
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("AttractionId");
+
+                    b.HasIndex("CityId");
+
+                    b.HasIndex("Title");
+
+                    b.HasIndex("strCategory");
+
+                    b.ToTable("Attractions", "supusr");
+                });
+
+            modelBuilder.Entity("DbModels.CityDbM", b =>
+                {
+                    b.Property<Guid>("CityId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("Seeded")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("CityId");
+
+                    b.HasIndex("Country");
+
+                    b.HasIndex("Name", "Country")
+                        .IsUnique();
+
+                    b.ToTable("Cities", "supusr");
+                });
+
+            modelBuilder.Entity("DbModels.CommentDbM", b =>
+                {
+                    b.Property<Guid>("CommentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AttractionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Seeded")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<Guid>("TravelerId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CommentId");
+
+                    b.HasIndex("AttractionId");
+
+                    b.HasIndex("TravelerId");
+
+                    b.ToTable("Comments", "supusr");
                 });
 
             modelBuilder.Entity("DbModels.FriendDbM", b =>
@@ -146,6 +244,33 @@ namespace DbContext.Migrations.PostgresDbContext
                     b.HasKey("QuoteId");
 
                     b.ToTable("Quotes", "supusr");
+                });
+
+            modelBuilder.Entity("DbModels.TravelerDbM", b =>
+                {
+                    b.Property<Guid>("TravelerId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("Seeded")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("TravelerId");
+
+                    b.HasIndex("LastName", "FirstName");
+
+                    b.ToTable("Travelers", "supusr");
                 });
 
             modelBuilder.Entity("DbModels.UserDbM", b =>
@@ -268,6 +393,36 @@ namespace DbContext.Migrations.PostgresDbContext
                     b.ToView("vwInfoQuotes", "gstusr");
                 });
 
+            modelBuilder.Entity("DbModels.AttractionDbM", b =>
+                {
+                    b.HasOne("DbModels.CityDbM", "CityDbM")
+                        .WithMany("AttractionsDbM")
+                        .HasForeignKey("CityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CityDbM");
+                });
+
+            modelBuilder.Entity("DbModels.CommentDbM", b =>
+                {
+                    b.HasOne("DbModels.AttractionDbM", "AttractionDbM")
+                        .WithMany("CommentsDbM")
+                        .HasForeignKey("AttractionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DbModels.TravelerDbM", "TravelerDbM")
+                        .WithMany("CommentsDbM")
+                        .HasForeignKey("TravelerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AttractionDbM");
+
+                    b.Navigation("TravelerDbM");
+                });
+
             modelBuilder.Entity("DbModels.FriendDbM", b =>
                 {
                     b.HasOne("DbModels.AddressDbM", "AddressDbM")
@@ -309,9 +464,24 @@ namespace DbContext.Migrations.PostgresDbContext
                     b.Navigation("FriendsDbM");
                 });
 
+            modelBuilder.Entity("DbModels.AttractionDbM", b =>
+                {
+                    b.Navigation("CommentsDbM");
+                });
+
+            modelBuilder.Entity("DbModels.CityDbM", b =>
+                {
+                    b.Navigation("AttractionsDbM");
+                });
+
             modelBuilder.Entity("DbModels.FriendDbM", b =>
                 {
                     b.Navigation("PetsDbM");
+                });
+
+            modelBuilder.Entity("DbModels.TravelerDbM", b =>
+                {
+                    b.Navigation("CommentsDbM");
                 });
 #pragma warning restore 612, 618
         }

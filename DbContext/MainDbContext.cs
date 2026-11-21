@@ -26,7 +26,13 @@ public class MainDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<FriendDbM> Friends { get; set; }
     public DbSet<AddressDbM> Addresses { get; set; }
     public DbSet<PetDbM> Pets { get; set; }
-    public DbSet<QuoteDbM> Quotes { get; set; }    
+    public DbSet<QuoteDbM> Quotes { get; set; }
+
+    //TravelApp tables
+    public DbSet<CityDbM> Cities { get; set; }
+    public DbSet<AttractionDbM> Attractions { get; set; }
+    public DbSet<CommentDbM> Comments { get; set; }
+    public DbSet<TravelerDbM> Travelers { get; set; }
 
     //User for login
     public DbSet<UserDbM> Users { get; set; }
@@ -65,6 +71,35 @@ public class MainDbContext : Microsoft.EntityFrameworkCore.DbContext
                 .OnDelete(DeleteBehavior.SetNull);
 
             b.Navigation("AddressDbM");
+        });
+
+        //TravelApp relationships, modelled with Fluent API
+        modelBuilder.Entity<AttractionDbM>(b =>
+        {
+            // A City with Attractions cannot be deleted by mistake
+            b.HasOne(a => a.CityDbM)
+                .WithMany(c => c.AttractionsDbM)
+                .HasForeignKey(a => a.CityId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.Property(a => a.Description).HasColumnType("varchar(1000)");
+        });
+
+        modelBuilder.Entity<CommentDbM>(b =>
+        {
+            // Removing an Attraction removes all its Comments
+            b.HasOne(c => c.AttractionDbM)
+                .WithMany(a => a.CommentsDbM)
+                .HasForeignKey(c => c.AttractionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Removing a Traveler removes all Comments written by the Traveler
+            b.HasOne(c => c.TravelerDbM)
+                .WithMany(t => t.CommentsDbM)
+                .HasForeignKey(c => c.TravelerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.Property(c => c.Text).HasColumnType("varchar(1000)");
         });
         #endregion
         
